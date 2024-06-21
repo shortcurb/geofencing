@@ -2,7 +2,7 @@ import re
 import json
 import hashlib
 
-from database import Database
+from support_connections.database import Database
 from typing import Dict, Any, List
 
 class Vehicle_Device:
