@@ -32,7 +32,7 @@ def composemessage(veh,marketinfo,lr,mms):
     text += f"ICCID: <{iccidurl}|{veh['iccid']}>\n"
     text += "*Record Info*\n"
     text += f"Last Record: {lred}\nSpeed: {lr.speed}\nFuel: {lr.fuel_level}\n"
-    text += f"Ignition: {lr.event_data_IoItems_Ignition}\Cell Reception: {lr.event_data_IoItems_GSM_level*2}/10\n"
+    text += f"Ignition: {lr.event_data_IoItems_Ignition}\nCell Reception: {lr.event_data_IoItems_GSM_level*2}/10\n"
     text += f"<{gmapsurl}|Location>\n"
     text += "*Tags*\n"
     for mm in mms:
@@ -55,31 +55,36 @@ def composemessage(veh,marketinfo,lr,mms):
         pass
     text = text + f"<@{romtag}>\n"
     text = text + f"<@{rmmtag}>\n"
-    text += "<!subteam^S05TDEBPHPC|@customercare>"
+    text += "<!subteam^S05TDEBPHPC|@customercare>\n"
+    text += "`Use above info to determine if vehicle is at risk of being stolen. Respond to Alex Evans with ?s`"
+
 #    print(text)
     return(text)
 
 def findchannel(marketinfo):
     if os.environ['runtimecontext'] == 'stage':
-        return('C05AQH4E39T')
+        return([{'channelid':'C05AQH4E39T'}])
     mktname = 'ops-'+marketinfo['name'].lower().replace(' ','')
     channelid = db.execute_query('SELECT channelid FROM slackchannels WHERE name = ?',[mktname])
     return(channelid)
 
 def findsenders():
     then = datetime.datetime.now()-datetime.timedelta(hours = 1)
-    sendable = db.execute_query("SELECT f.vin,v.ismi,v.market,v.fleetnumber,v.model,v.year,d.ismi,d.imei,d.iccid FROM fencedvehicles f INNER JOIN vehicles v ON v.vin = f.vin INNER JOIN devices d ON v.ismi = d.ismi WHERE lastalert < ? OR lastalert is Null",[then])
+    sendable = db.execute_query("SELECT f.vin,v.ismi,v.market,v.fleetnumber,v.model,v.year,d.ismi,d.imei,d.iccid FROM fencedvehicles f INNER JOIN vehicles v ON v.vin = f.vin INNER JOIN devices d ON v.ismi = d.ismi WHERE lastalert is Null",[then])
     for veh in sendable:
         marketinfo = db.execute_query("SELECT * FROM markets WHERE name = ?",[veh['market']])
         latest_record = rec.get_and_parse_latest_record(veh['ismi'])
         mms = db.execute_query('SELECT name,slackuserid FROM users WHERE markets =? AND slackuserid != "" AND active = True AND role LIKE "%Market Manager%"',[veh['market']])
+        print(json.dumps(veh,indent=2))
         text = composemessage(veh,marketinfo,latest_record,mms)
         channel = findchannel(marketinfo[0])
         slackpayload = {
             'url':'chat.postMessage',
-            'data':{'channel':channel,'text':text,'unfurl_links':False}
+            'data':{'channel':channel[0]['channelid'],'text':text,'unfurl_links':False}
         }
+#        print(json.dumps(slackpayload,indent=2))
         Slack().req_slack(slackpayload)
+        db.execute_query("UPDATE fencedvehicles SET lastalert = ? WHERE vin = ?",[datetime.datetime.now(),veh['vin']])
 
-
-findsenders()
+if __name__ == '__main__':
+    findsenders()

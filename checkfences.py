@@ -20,7 +20,7 @@ FROM (
 WHERE MOD(row_num, 10) = 0 AND border = 'US/Mexico'
 ORDER BY longitude asc
 """
-
+query = "SELECT * FROM geofence WHERE border = 'US/Mexico' AND latitude >=25.7942 AND longitude >= -106.995513"
 boundaries = db.execute_query(query)
 #print(len(boundaries))
 #print(boundaries)
@@ -75,44 +75,22 @@ def checker():
     print('checkablevehicles',len(checkablevehicles))
     counter = 1
     for veh in checkablevehicles:
-#        now = datetime.datetime.now()
-        print(veh)
         latest_record = rec.get_and_parse_latest_record(veh['ismi'])
         lrcoords = (latest_record.event_data_GpsItems_Latitude,latest_record.event_data_GpsItems_Longitude)
         violation = insidefence(lrcoords)
         if violation:
             upsertviolation(veh,latest_record)
-        print('sleeping',counter)
+        print(f"Checked {veh['fleetnumber']}, {counter} out of {len(checkablevehicles)}, now sleeping .5 seconds")
         time.sleep(.5)
         counter +=1
 
+if __name__ == '__main__':
+    checkexisting()
+    checker()
+    from sendalerts import findsenders
+    findsenders()
 
-checkexisting()
-checker()
 
 
 
 
-
-def parser(item):
-    data = []
-    for lvl1 in item:
-        data += lvl1
-#        for lvl2 in lvl1:
-#            data += lvl2
-    return(data)
-
-def adddata():
-    with open('mexico.json') as file:
-        mexicoborders = json.load(file)
-        dataloc = mexicoborders['features'][0]['geometry']['coordinates']
-        print(len(dataloc))
-    #    print(json.dumps(dataloc,indent=2))
-        metadata = []
-        for item in dataloc:
-    #        print(item)
-            for flatitem in parser(item):
-                print(flatitem)
-                query = 'INSERT INTO work.geofence (latitude,longitude,border) VALUES (?,?,?)'
-                db.execute_query(query,[flatitem[1],flatitem[0],'US/Mexico'])
-                
