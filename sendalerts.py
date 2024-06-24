@@ -26,6 +26,7 @@ def composemessage(veh,marketinfo,lr,mms):
     text = ":rotating_light: There is a vehicle within 50 miles of the US/Mexico border :rotating_light:\n*Vehicle Info*\n"
     text += f"FN: {veh['fleetnumber']}\nVIN: {veh['vin']}\n"
     text += f"Model: {str(veh['year'])}' '{veh['model']}\nMarket: {veh['market']}\n"
+    text += f"Status {veh['status'][:30]}\n"
     text +="*Device Info*\n"
     text += f"ISMI: <{ismiurl}|{veh['ismi']}>\n"
     text += f"IMEI: <{imeiurl}|{veh['imei']}>\n"
@@ -70,7 +71,12 @@ def findchannel(marketinfo):
 
 def findsenders():
     then = datetime.datetime.now()-datetime.timedelta(hours = 1)
-    sendable = db.execute_query("SELECT f.vin,v.ismi,v.market,v.fleetnumber,v.model,v.year,d.ismi,d.imei,d.iccid FROM fencedvehicles f INNER JOIN vehicles v ON v.vin = f.vin INNER JOIN devices d ON v.ismi = d.ismi WHERE lastalert is Null",[then])
+    if os.environ['runtimecontext'] == 'stage':
+        query = "SELECT f.vin,v.ismi,v.market,v.status,v.fleetnumber,v.model,v.year,d.ismi,d.imei,d.iccid FROM fencedvehicles f INNER JOIN vehicles v ON v.vin = f.vin INNER JOIN devices d ON v.ismi = d.ismi limit 3"
+    else:
+        query = "SELECT f.vin,v.ismi,v.market,v.status,v.fleetnumber,v.model,v.year,d.ismi,d.imei,d.iccid FROM fencedvehicles f INNER JOIN vehicles v ON v.vin = f.vin INNER JOIN devices d ON v.ismi = d.ismi WHERE lastalert is Null"
+    sendable = db.execute_query(query,[then])
+
     for veh in sendable:
         marketinfo = db.execute_query("SELECT * FROM markets WHERE name = ?",[veh['market']])
         latest_record = rec.get_and_parse_latest_record(veh['ismi'])
