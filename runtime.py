@@ -2,6 +2,7 @@ import asyncio
 import psutil
 import datetime
 import inspect
+import traceback
 from datetime import timedelta
 try:
     from database import Database
@@ -42,7 +43,7 @@ async def runpull(pullfunc,alteredentity,entitytype,dependencies):
                 """
             # Make sure to use autoconnect here in case there are long running queries that would otherwise make the conneciton timeout
 
-            depend_results = Database().execute_query(depend_query,(processname,datelimit),database = 'funcitondb', autoconnect = True)
+            depend_results = Database().execute_query(depend_query,(processname,datelimit),database = 'functiondb', autoconnect = True)
             print('depend_results',depend_results)
 #            processq = executequeryoc('functiondb','SELECT * FROM functionstate WHERE successbool = 1 AND processname = %s AND lastranat >= %s',[processname,datelimit])
             if depend_results == []:
@@ -61,13 +62,13 @@ async def runpull(pullfunc,alteredentity,entitytype,dependencies):
                     VALUES (?, ?, ?)
                     ON DUPLICATE KEY UPDATE datetime=datetime
                 """
-                Database().execute_query(stats_query,stats,database = 'funcitondb', autoconnect = True)
-#                writemanyoc('functiondb','INSERT INTO computingstate (datetime,cpuuse,memoryuse) VALUES (?,?,?) ON DUPLICATE KEY UPDATE datetime=datetime',stats)
+                Database().write_many(stats_query,stats,database = 'functiondb', autoconnect = True)
         else:
             raise TypeError(f"{pullfunc.__name__} must be an async coroutine")
         successbool = True
         
     except Exception as e:
+        traceback.print_exc()
         output = str(e) # Make sure to stringify it, or you won't be able to insert it in the table
         print('Exception',e)
         successbool = False

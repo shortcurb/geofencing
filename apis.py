@@ -1,6 +1,7 @@
 import requests
 import os
 import json
+import asyncio
 from dotenv import load_dotenv
 from typing import Union, List, Dict, Any
 
@@ -166,3 +167,32 @@ class Hasura:
         response.raise_for_status()
 
         return response   
+
+class Fota:
+    def __init__(self):
+        self.fota_token = os.getenv('fotatoken')
+
+    def req_fota(self, arguments):
+        arguments.setdefault('method', 'GET')
+        arguments.setdefault('headers', {'Accept':'application/json','Content-Type': 'application/json'})
+        arguments['headers'].update({
+            "Authorization": self.fota_token
+        })
+        arguments['url'] = f"https://api.teltonika.lt/{arguments['url']}"
+
+        if arguments['headers']['Content-Type'] == 'application/json':
+            arguments['data'] = json.dumps(arguments['data'])
+
+        response = requests.request(**arguments)
+        response.raise_for_status()
+
+        return response   
+
+    async def fota_export_devices(self,payload,waittime):
+        export_req_args = {'method':'POST','url':'files','data':payload}
+        self.req_fota(export_req_args) # Initiate the async devices request first
+        await asyncio.sleep(waittime)
+        check_file_args = {'url':'files','data':{'sort':'created_at','order':'desc'}}
+        # I can't find any place that uses the FOTA async request. Might have something to do with a datapull function?
+        # Leave it unfinished for now
+

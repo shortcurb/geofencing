@@ -1,5 +1,9 @@
 import mariadb
 import os
+import re
+from sqlalchemy import create_engine
+import geopandas as gpd
+import pandas as pd
 from typing import Dict, List, Any, Union, Optional
 from dotenv import load_dotenv
 
@@ -160,8 +164,53 @@ class Database:
             if autoconnect:
                 self.close()
 
+class GeoDB:
+    def __init__(self,database):
+
+        load_dotenv()
+        self.credentials = {
+            'password': os.getenv('dbpassword'),
+            'host': os.getenv('dbhost'),
+            'port': int(os.getenv('dbport')),
+            'user': os.getenv('dbuser'),
+        }
+        connection_string = connection_string = f"mysql+pymysql://{self.credentials['user']}:{self.credentials['password']}@{self.credentials['host']}:{self.credentials['port']}/{database}"
+        self.engine = create_engine(connection_string)
+
+    def insert_gdf(self,groupname,polygon):
+        with self.engine.connect() as conn:
+            # Iterate through the GeoDataFrame rows
+            for index, row in polygon.iterrows():
+                conn.execute("""
+                INSERT INTO geofencing.fences (groupname,name, geom)
+                VALUES (%s, ST_GeomFromText(%s));
+                """, (groupname,row['name'], row['geom_wkt']))
+
+
+    def select_gdf(self, query: str, data: Optional[dict] = None) -> gpd.GeoDataFrame:
+        # I will probably never remember to select the geom as ST_AsText, so just let this function alter the query for me
+        pattern = r', ?geom'
+        matches = re.findall(pattern,query)
+        if matches != []:
+            for match in matches:
+                query = query.replace(match, ", ST_AsText(geom)")
+        if data:
+            df = pd.read_sql(query, self.engine, params=data)
+        else:
+            df = pd.read_sql(query, self.engine)
+
+        df['geometry'] = df['geom'].apply(lambda x: gpd.GeoSeries.from_wkt([x])[0])
+        
+        gdf_result = gpd.GeoDataFrame(df, geometry='geometry')
+        
+        return gdf_result
+
+
+
+
 
 if __name__ == '__main__':
+    '''
     db = Database()
 #    db.close()
     print(db.execute_query('SELECT name FROM markets LIMIT 1', autoconnect=False))
@@ -176,3 +225,8 @@ if __name__ == '__main__':
     db.connect('functiondb')
     b = db.execute_query('SELECT * FROM functionstate')
     print(b)
+    '''
+    query = "SELECT name,ST_AsText(geom) FROM fences"
+    query = "SELECT name,geom as geom FROM fences"
+    a = GeoDB('geofencing').select_gdf(query)
+    #print(a)

@@ -155,12 +155,12 @@ def hitatt(urlsuffix,method,headers,payload,parambool):
             r = requests.request(method,url,headers = headers,data=json.dumps(payload))
     return(r)
 
-@trackcalls
 def sendemail(recipient_list, subject, body, file_path):
     server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
     server.login(os.getenv('workemailaddress'), os.getenv('gmailpw'))
     message = MIMEMultipart()
     message["From"] = os.getenv('workemailaddress')
+    message["To"] = ", ".join(recipient_list)
     message["Subject"] = subject
     message.attach(MIMEText(body, 'plain'))
     # Attach the file
@@ -171,10 +171,9 @@ def sendemail(recipient_list, subject, body, file_path):
         encoders.encode_base64(part)
         part.add_header('Content-Disposition', f'attachment; filename={os.path.basename(file_path)}')
         message.attach(part)
+
     # Send email to each recipient
-    for recipient in recipient_list:
-        message["To"] = recipient
-        server.send_message(message)
+    server.send_message(message)
     # Terminate the SMTP session and close the connection
     server.quit()
 

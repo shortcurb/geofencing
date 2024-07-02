@@ -2,7 +2,14 @@ import re
 import json
 import hashlib
 
-from database import Database
+try:
+    from database import Database
+except ModuleNotFoundError:
+    try:
+        from support_connections.database import Database
+    except ModuleNotFoundError:
+        pass
+
 from typing import Dict, Any, List
 
 class Vehicle_Device:
