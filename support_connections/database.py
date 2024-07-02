@@ -151,6 +151,7 @@ class Database:
         cursor = self.connection.cursor(dictionary = True)
         try:
             cursor.executemany(query,params)
+            self.connection.commit()
         except mariadb.Error as e:
             print(f"Error executing query: {e}")
             self.connection.rollback()
