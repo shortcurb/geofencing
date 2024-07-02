@@ -71,7 +71,8 @@ def findchannel(marketinfo):
 
 def findsenders():
     then = datetime.datetime.now()-datetime.timedelta(hours = 1)
-    if os.environ['runtimecontext'] == 'stage':
+#    if os.environ['runtimecontext'] == 'stage':
+    if False == True:
         query = "SELECT f.vin,v.ismi,v.market,v.status,v.fleetnumber,v.model,v.year,d.ismi,d.imei,d.iccid FROM fencedvehicles f INNER JOIN vehicles v ON v.vin = f.vin INNER JOIN devices d ON v.ismi = d.ismi limit 3"
     else:
         query = "SELECT f.vin,v.ismi,v.market,v.status,v.fleetnumber,v.model,v.year,d.ismi,d.imei,d.iccid FROM fencedvehicles f INNER JOIN vehicles v ON v.vin = f.vin INNER JOIN devices d ON v.ismi = d.ismi WHERE lastalert is Null"
@@ -89,8 +90,12 @@ def findsenders():
             'data':{'channel':channel[0]['channelid'],'text':text,'unfurl_links':False}
         }
 #        print(json.dumps(slackpayload,indent=2))
-        Slack().req_slack(slackpayload)
-        db.execute_query("UPDATE fencedvehicles SET lastalert = ? WHERE vin = ?",[datetime.datetime.now(),veh['vin']])
+        print('I want to send this payload, y for ok or anything else cancells\n')
+        print(json.dumps(slackpayload,indent=2))
+        a = input('\n\ny to send\n')
+#        Slack().req_slack(slackpayload)
+#        db.execute_query("UPDATE fencedvehicles SET lastalert = ? WHERE vin = ?",[datetime.datetime.now(),veh['vin']])
 
 if __name__ == '__main__':
     findsenders()
+
