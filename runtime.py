@@ -2,8 +2,14 @@ import asyncio
 import psutil
 import datetime
 import inspect
-from datetime import datetime,timedelta
-from database import Database
+from datetime import timedelta
+try:
+    from database import Database
+except ModuleNotFoundError:
+    try:
+        from support_connections.database import Database
+    except ModuleNotFoundError:
+        pass
 
 async def getstats(waittime,stats):
     try:
@@ -18,9 +24,8 @@ async def getstats(waittime,stats):
         print('gettask finished (not a bad thing)')
 
 
-
-
 async def runpull(pullfunc,alteredentity,entitytype,dependencies):
+    db = Database()
     # dependencies is a dictionary of processname:integer-seconds-since-update
     start = datetime.datetime.now()
     stats = []
@@ -66,7 +71,7 @@ async def runpull(pullfunc,alteredentity,entitytype,dependencies):
         output = str(e) # Make sure to stringify it, or you won't be able to insert it in the table
         print('Exception',e)
         successbool = False
-    end = datetime.now()
+    end = datetime.datetime.now()
     duration = (end-start).total_seconds()
     state_query = """
         INSERT INTO functionstate 
@@ -101,9 +106,12 @@ async def runpull(pullfunc,alteredentity,entitytype,dependencies):
         successbool,
         entitytype
     ]
-    conn = db().connect('funcitondb')
     db.execute_query(state_query,state_data)
-    conn = dbconn()
-    writequery(conn,statequery,statedata)
-    writequery(conn,summaryquery,summarydata)
-    conn.close() 
+    db.execute_query(summary_query,summary_data)
+
+
+
+if __name__ == '__main__':
+    async def test():
+        return('test')
+    asyncio.run(runpull(test,'test','test',{}))
