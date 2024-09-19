@@ -25,7 +25,7 @@ class Fencer:
         self.ff = FluidFleet()
         gdb = GeoDB('geofencing')
         self.id = Identify()
-        self.buffers = gdb.select_gdf('SELECT name,geom FROM geofencing.fences WHERE groupname LIKE "buffer%"')
+        self.buffers = gdb.select_gdf('SELECT name,geom FROM geofencing.fences WHERE groupname LIKE "buffer%%"')
 
 
     def checkbuffers(self,lat,lon):

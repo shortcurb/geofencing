@@ -206,6 +206,7 @@ class GeoDB:
         if data:
             df = pd.read_sql(query, self.engine, params=data)
         else:
+            print(query)
             df = pd.read_sql(query, self.engine)
 
         df['geometry'] = df['geom'].apply(lambda x: gpd.GeoSeries.from_wkt([x])[0])
